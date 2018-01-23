@@ -27,6 +27,8 @@ import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.animation.LinearInterpolator;
@@ -136,6 +138,19 @@ public class Alert extends FrameLayout implements View.OnClickListener, Animatio
         pbProgress = (ProgressBar) findViewById(R.id.pbProgress);
 
         flBackground.setOnClickListener(this);
+        flBackground.setAccessibilityDelegate(new AccessibilityDelegate() {
+            @Override
+            public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(host, info);
+                info.setClassName(android.widget.Button.class.getName());
+            }
+
+            @Override
+            public void onInitializeAccessibilityEvent(View host, AccessibilityEvent event) {
+                super.onInitializeAccessibilityEvent(host, event);
+                event.setClassName(android.widget.Button.class.getName());
+            }
+        });
 
         //Setup Enter & Exit Animations
         slideInAnimation = AnimationUtils.loadAnimation(getContext(), R.anim.alerter_slide_in_from_top);
@@ -221,7 +236,20 @@ public class Alert extends FrameLayout implements View.OnClickListener, Animatio
             onShowListener.onShow();
         }
 
+        // Read aloud the alert for accessibility users.
+        String contentDesc = String.format("%s %s", this.getTitle().getText(), this.getText().getText());
+        this.announceForAccessibility(flBackground, contentDesc);
+
         startHideAnimation();
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    private void announceForAccessibility(View view, String announcement) {
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            view.announceForAccessibility(announcement);
+        } else {
+            view.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_FOCUSED);
+        }
     }
 
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
